@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#4f46e5">
+<title>Mis Pendientes</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Mis Pendientes</h1>
+      <div class="date"><span class="greet" id="greet"></span> · <span id="today"></span></div>
+    </div>
+    <div style="text-align:right"><div id="status">Conectando…</div><button class="btn ghost" id="clearDone" style="margin-top:6px">Limpiar completados</button></div>
+  </header>
+  <section class="brief">
+    <h2>Resumen de hoy</h2>
+    <div class="brief-stats">
+      <div class="stat red"><div class="n" id="s-over">0</div><div class="l">Vencidos</div></div>
+      <div class="stat amber"><div class="n" id="s-today">0</div><div class="l">Para hoy</div></div>
+      <div class="stat blue"><div class="n" id="s-soon">0</div><div class="l">Próximos 7 días</div></div>
+      <div class="stat green"><div class="n" id="s-done">0</div><div class="l">Completados hoy</div></div>
+    </div>
+    <div class="brief-list" id="briefList"></div>
+  </section>
+  <section class="addbar">
+    <div class="row">
+      <input type="text" id="newTitle" placeholder="Escribe una tarea, correo o nota…">
+      <select id="newType">
+        <option value="tarea">📋 Tarea</option>
+        <option value="responder">📥 Correo por responder</option>
+        <option value="enviar">📤 Correo por enviar</option>
+        <option value="nota">🗒️ Nota / recordatorio</option>
+      </select>
+      <input type="date" id="newDate" title="Fecha (opcional)">
+      <select id="newPrio">
+        <option value="media">Prioridad media</option>
+        <option value="alta">Prioridad alta</option>
+        <option value="baja">Prioridad baja</option>
+      </select>
+      <button class="btn" id="addBtn">＋ Agregar</button>
+    </div>
+    <div class="row" style="margin-top:8px;">
+      <textarea id="newNote" placeholder="Detalle opcional (a quién, asunto, notas)…" rows="1" style="flex:1 1 100%;resize:vertical;"></textarea>
+    </div>
+  </section>
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="todos">Todo <span class="count" id="c-todos">0</span></button>
+    <button class="tab" data-tab="tarea">📋 Tareas <span class="count" id="c-tarea">0</span></button>
+    <button class="tab" data-tab="responder">📥 Por responder <span class="count" id="c-responder">0</span></button>
+    <button class="tab" data-tab="enviar">📤 Por enviar <span class="count" id="c-enviar">0</span></button>
+    <button class="tab" data-tab="nota">🗒️ Notas <span class="count" id="c-nota">0</span></button>
+  </div>
+  <div class="toolbar">
+    <label><input type="checkbox" id="showDone"> Mostrar completados</label>
+    <span style="font-size:12.5px;color:var(--muted);">Ordenado por fecha (lo urgente primero)</span>
+  </div>
+  <div class="list" id="list"><div class="empty">Cargando…</div></div>
+  <footer>Tus datos se guardan en la nube (Supabase). Puedes abrir esta página desde cualquier dispositivo.</footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
