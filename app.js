@@ -131,7 +131,7 @@
 
   document.getElementById('list').addEventListener('click', function(e){
     var btn=e.target.closest('[data-act]'); if(!btn) return; var itemEl=e.target.closest('.item'); if(!itemEl) return; var it=findById(itemEl.dataset.id); if(!it) return; var act=btn.dataset.act;
-    if(act==='toggle'){ patch(it.id,{hecha:true, hecha_en:todayStr()}); }
+    if(act==='toggle'){ if(confirm('¿Ya completaste "'+it.titulo+'"?\n\nSe moverá a tu Historial. (Podrás reabrirla si te equivocas.)')) patch(it.id,{hecha:true, hecha_en:todayStr()}); }
     else if(act==='reopen'){ patch(it.id,{hecha:false, hecha_en:null}); }
     else if(act==='del'){ patch(it.id,{eliminada:true, eliminada_en:new Date().toISOString()}); }
     else if(act==='restore'){ patch(it.id,{eliminada:false, eliminada_en:null}); }
