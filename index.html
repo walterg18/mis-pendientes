@@ -14,7 +14,7 @@
       <h1>Mis Pendientes</h1>
       <div class="date"><span class="greet" id="greet"></span> · <span id="today"></span></div>
     </div>
-    <div style="text-align:right"><div id="status">Conectando…</div><button class="btn ghost" id="clearDone" style="margin-top:6px">Limpiar completados</button></div>
+    <div style="text-align:right"><div id="status">Conectando…</div></div>
   </header>
   <section class="brief">
     <h2>Resumen de hoy</h2>
@@ -53,10 +53,12 @@
     <button class="tab" data-tab="responder">📥 Por responder <span class="count" id="c-responder">0</span></button>
     <button class="tab" data-tab="enviar">📤 Por enviar <span class="count" id="c-enviar">0</span></button>
     <button class="tab" data-tab="nota">🗒️ Notas <span class="count" id="c-nota">0</span></button>
+    <button class="tab" data-tab="historial">✅ Historial <span class="count" id="c-historial">0</span></button>
+    <button class="tab" data-tab="papelera">🗑️ Papelera <span class="count" id="c-papelera">0</span></button>
   </div>
   <div class="toolbar">
-    <label><input type="checkbox" id="showDone"> Mostrar completados</label>
-    <span style="font-size:12.5px;color:var(--muted);">Ordenado por fecha (lo urgente primero)</span>
+    <span id="toolbarInfo" style="font-size:12.5px;color:var(--muted);">Ordenado por fecha (lo urgente primero)</span>
+    <button class="btn ghost hidden" id="emptyTrash">Vaciar papelera</button>
   </div>
   <div class="list" id="list"><div class="empty">Cargando…</div></div>
   <footer>Tus datos se guardan en la nube (Supabase). Puedes abrir esta página desde cualquier dispositivo.</footer>
