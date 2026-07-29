@@ -5,6 +5,7 @@
   var items = []; var activeTab = 'todos';
   var TYPE_LABEL = {tarea:'Tarea', responder:'Correo por responder', enviar:'Correo por enviar', nota:'Nota'};
   var TYPE_ICON  = {tarea:'📋', responder:'📥', enviar:'📤', nota:'🗒️'};
+  var STAT_LABEL = {stat_vencidos:'Vencidos', stat_hoy:'Para hoy', stat_proximos:'Próximos 7 días', stat_completados:'Completados hoy'};
 
   function setStatus(t){ document.getElementById('status').textContent = t; }
   function todayStr(){ var d=new Date(); d.setHours(0,0,0,0); var m=('0'+(d.getMonth()+1)).slice(-2); var day=('0'+d.getDate()).slice(-2); return d.getFullYear()+'-'+m+'-'+day; }
@@ -51,21 +52,37 @@
     if(urgent.length){ bl.innerHTML=urgent.map(function(it){ var c=dateClass(it.fecha,false); var color=c==='overdue'?'var(--red)':'var(--amber)'; return '<div class="brief-item"><span class="dot" style="background:'+color+'"></span><strong>'+TYPE_ICON[it.tipo]+'</strong> '+esc(it.titulo)+' <span style="color:var(--muted);margin-left:auto;font-size:12px">'+(dayDiff(it.fecha)<0?'vencido':'hoy')+'</span></div>'; }).join(''); }
     else { bl.innerHTML='<div class="brief-empty">🎉 Nada vencido ni para hoy. ¡Vas al día!</div>'; }
 
+    // resaltar la tarjeta del resumen seleccionada
+    var statEls=document.querySelectorAll('.brief-stats .stat');
+    for(var si=0; si<statEls.length; si++){ statEls[si].classList.toggle('sel', activeTab==='stat_'+statEls[si].dataset.filter); }
+
     // barra de herramientas
     var info=document.getElementById('toolbarInfo'); var trashBtn=document.getElementById('emptyTrash');
     trashBtn.classList.add('hidden');
     if(activeTab==='historial'){ info.textContent='Lo que ya completaste (más reciente primero)'; }
     else if(activeTab==='papelera'){ info.textContent='Elementos eliminados — puedes restaurarlos'; if(counts.papelera>0) trashBtn.classList.remove('hidden'); }
+    else if(activeTab.indexOf('stat_')===0){ info.textContent='Mostrando: '+STAT_LABEL[activeTab]+' · toca una pestaña para volver'; }
     else { info.textContent='Ordenado por fecha (lo urgente primero)'; }
 
     // lista
     var list=document.getElementById('list'); var filtered;
     if(activeTab==='historial'){ filtered=byStamp(items.filter(isHistory),'hecha_en'); }
     else if(activeTab==='papelera'){ filtered=byStamp(items.filter(isTrash),'eliminada_en'); }
+    else if(activeTab==='stat_vencidos'){ filtered=sortPending(items.filter(function(it){ return isPending(it)&&it.fecha&&dayDiff(it.fecha)<0; })); }
+    else if(activeTab==='stat_hoy'){ filtered=sortPending(items.filter(function(it){ return isPending(it)&&it.fecha&&dayDiff(it.fecha)===0; })); }
+    else if(activeTab==='stat_proximos'){ filtered=sortPending(items.filter(function(it){ return isPending(it)&&it.fecha&&dayDiff(it.fecha)>=1&&dayDiff(it.fecha)<=7; })); }
+    else if(activeTab==='stat_completados'){ filtered=byStamp(items.filter(function(it){ return isHistory(it)&&it.hecha_en===todayStr(); }),'hecha_en'); }
     else { filtered=sortPending(items.filter(function(it){ return isPending(it) && (activeTab==='todos'?true:it.tipo===activeTab); })); }
 
     if(!filtered.length){
-      var msg = activeTab==='papelera' ? 'La papelera está vacía. 🗑️' : (activeTab==='historial' ? 'Aquí aparecerá lo que vayas completando. ✅' : 'No hay nada aquí todavía. Agrega tu primer pendiente arriba ☝️');
+      var msg;
+      if(activeTab==='papelera') msg='La papelera está vacía. 🗑️';
+      else if(activeTab==='historial') msg='Aquí aparecerá lo que vayas completando. ✅';
+      else if(activeTab==='stat_vencidos') msg='No tienes nada vencido. 🎉';
+      else if(activeTab==='stat_hoy') msg='No tienes nada para hoy. 🎉';
+      else if(activeTab==='stat_proximos') msg='Nada en los próximos 7 días.';
+      else if(activeTab==='stat_completados') msg='Aún no has completado nada hoy.';
+      else msg='No hay nada aquí todavía. Agrega tu primer pendiente arriba ☝️';
       list.innerHTML='<div class="empty">'+msg+'</div>'; return;
     }
     list.innerHTML=filtered.map(itemHTML).join('');
@@ -152,6 +169,8 @@
     await load();
   });
   document.getElementById('tabs').addEventListener('click', function(e){ var t=e.target.closest('.tab'); if(!t) return; activeTab=t.dataset.tab; var all=document.querySelectorAll('.tab'); for(var i=0;i<all.length;i++) all[i].classList.remove('active'); t.classList.add('active'); render(); });
+  var briefStats=document.querySelector('.brief-stats');
+  if(briefStats){ briefStats.addEventListener('click', function(e){ var s=e.target.closest('.stat'); if(!s||!s.dataset.filter) return; activeTab='stat_'+s.dataset.filter; var all=document.querySelectorAll('.tab'); for(var i=0;i<all.length;i++) all[i].classList.remove('active'); render(); }); }
 
   var now=new Date(); var h=now.getHours();
   document.getElementById('greet').textContent = h<12?'Buenos días':h<19?'Buenas tardes':'Buenas noches';

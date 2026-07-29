@@ -10,7 +10,9 @@ header.top{display:flex;align-items:flex-end;justify-content:space-between;flex-
 .brief{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);margin-bottom:16px;}
 .brief h2{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:12px;}
 .brief-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
-.stat{border-radius:10px;padding:12px 14px;border:1px solid var(--line);}
+.stat{border-radius:10px;padding:12px 14px;border:1px solid var(--line);cursor:pointer;transition:transform .1s, box-shadow .1s;}
+.stat:hover{transform:translateY(-1px);box-shadow:var(--shadow);}
+.stat.sel{box-shadow:0 0 0 2px var(--ink);}
 .stat .n{font-size:26px;font-weight:700;line-height:1;}
 .stat .l{font-size:12px;color:var(--muted);margin-top:6px;}
 .stat.red{background:var(--red-soft);border-color:#fecaca;}.stat.red .n{color:var(--red);}

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#4f46e5">
 <title>Mis Pendientes</title>
-<link rel="stylesheet" href="styles.css?v=5">
+<link rel="stylesheet" href="styles.css?v=8">
 </head>
 <body>
 <div class="wrap">
@@ -19,10 +19,10 @@
   <section class="brief">
     <h2>Resumen de hoy</h2>
     <div class="brief-stats">
-      <div class="stat red"><div class="n" id="s-over">0</div><div class="l">Vencidos</div></div>
-      <div class="stat amber"><div class="n" id="s-today">0</div><div class="l">Para hoy</div></div>
-      <div class="stat blue"><div class="n" id="s-soon">0</div><div class="l">Próximos 7 días</div></div>
-      <div class="stat green"><div class="n" id="s-done">0</div><div class="l">Completados hoy</div></div>
+      <div class="stat red" data-filter="vencidos" title="Ver vencidos"><div class="n" id="s-over">0</div><div class="l">Vencidos</div></div>
+      <div class="stat amber" data-filter="hoy" title="Ver los de hoy"><div class="n" id="s-today">0</div><div class="l">Para hoy</div></div>
+      <div class="stat blue" data-filter="proximos" title="Ver próximos 7 días"><div class="n" id="s-soon">0</div><div class="l">Próximos 7 días</div></div>
+      <div class="stat green" data-filter="completados" title="Ver completados hoy"><div class="n" id="s-done">0</div><div class="l">Completados hoy</div></div>
     </div>
     <div class="brief-list" id="briefList"></div>
   </section>
@@ -64,7 +64,7 @@
   <footer>Tus datos se guardan en la nube (Supabase). Puedes abrir esta página desde cualquier dispositivo.</footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=5"></script>
-<script src="app.js?v=5"></script>
+<script src="config.js?v=8"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>
