@@ -172,8 +172,18 @@
   var briefStats=document.querySelector('.brief-stats');
   if(briefStats){ briefStats.addEventListener('click', function(e){ var s=e.target.closest('.stat'); if(!s||!s.dataset.filter) return; activeTab='stat_'+s.dataset.filter; var all=document.querySelectorAll('.tab'); for(var i=0;i<all.length;i++) all[i].classList.remove('active'); render(); }); }
 
+  // ===== Notificaciones push =====
+  var VAPID_PUBLIC='BOe70c9molFJkcVlOjcFekRyIkw0LaeLdm3rywN4IL6qZOu8tNK3C-zbuNerYzb-WfKcpzBKQIf1s1JaVzVbOvg';
+  var swReg=null;
+  function urlB64ToUint8(b64){ var pad='='.repeat((4-b64.length%4)%4); var s=(b64+pad).replace(/-/g,'+').replace(/_/g,'/'); var raw=atob(s); var arr=new Uint8Array(raw.length); for(var i=0;i<raw.length;i++) arr[i]=raw.charCodeAt(i); return arr; }
+  function updateNotifBtn(){ var b=document.getElementById('notifBtn'); if(!b) return; if(!('Notification' in window)){ b.style.display='none'; return; } if(Notification.permission==='granted'){ b.textContent='🔔 Avisos activados'; b.disabled=true; b.style.opacity='.7'; } else { b.textContent='🔔 Activar avisos'; b.disabled=false; b.style.opacity='1'; } }
+  async function initPush(){ if(!('serviceWorker' in navigator)||!('PushManager' in window)){ var b=document.getElementById('notifBtn'); if(b) b.style.display='none'; return; } try{ swReg=await navigator.serviceWorker.register('sw.js'); }catch(e){ console.error('SW',e); } updateNotifBtn(); }
+  async function activarAvisos(){ try{ if(!('serviceWorker' in navigator)||!('PushManager' in window)){ alert('Tu navegador no soporta notificaciones.'); return; } var perm=await Notification.requestPermission(); if(perm!=='granted'){ alert('Para recibir avisos debes permitir las notificaciones en el navegador.'); updateNotifBtn(); return; } var reg=swReg||await navigator.serviceWorker.ready; var sub=await reg.pushManager.getSubscription(); if(!sub){ sub=await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:urlB64ToUint8(VAPID_PUBLIC) }); } var j=sub.toJSON(); await db.from('push_subs').insert({ endpoint:j.endpoint, p256dh:j.keys.p256dh, auth:j.keys.auth }); updateNotifBtn(); alert('¡Avisos activados en este dispositivo! Te llegarán a las 9 y 10 aunque tengas la app cerrada.'); }catch(e){ console.error(e); alert('No se pudo activar: '+(e&&e.message?e.message:e)); } }
+  var notifBtnEl=document.getElementById('notifBtn'); if(notifBtnEl){ notifBtnEl.addEventListener('click', activarAvisos); }
+
   var now=new Date(); var h=now.getHours();
   document.getElementById('greet').textContent = h<12?'Buenos días':h<19?'Buenas tardes':'Buenas noches';
   document.getElementById('today').textContent = now.toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   load();
+  initPush();
 })();

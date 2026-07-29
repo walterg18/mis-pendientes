@@ -4,8 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#4f46e5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pendientes">
+<link rel="manifest" href="manifest.json">
 <title>Mis Pendientes</title>
-<link rel="stylesheet" href="styles.css?v=8">
+<link rel="stylesheet" href="styles.css?v=10">
 </head>
 <body>
 <div class="wrap">
@@ -14,7 +17,7 @@
       <h1>Mis Pendientes</h1>
       <div class="date"><span class="greet" id="greet"></span> · <span id="today"></span></div>
     </div>
-    <div style="text-align:right"><div id="status">Conectando…</div></div>
+    <div style="text-align:right"><div id="status">Conectando…</div><button class="btn ghost" id="notifBtn" style="margin-top:6px">🔔 Activar avisos</button></div>
   </header>
   <section class="brief">
     <h2>Resumen de hoy</h2>
@@ -64,7 +67,7 @@
   <footer>Tus datos se guardan en la nube (Supabase). Puedes abrir esta página desde cualquier dispositivo.</footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=8"></script>
-<script src="app.js?v=8"></script>
+<script src="config.js?v=10"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>

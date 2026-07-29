@@ -1,0 +1,9 @@
+{
+  "name": "Mis Pendientes",
+  "short_name": "Pendientes",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f5f7",
+  "theme_color": "#4f46e5"
+}
