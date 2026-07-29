@@ -181,6 +181,40 @@
   async function activarAvisos(){ try{ if(!('serviceWorker' in navigator)||!('PushManager' in window)){ alert('Tu navegador no soporta notificaciones.'); return; } var perm=await Notification.requestPermission(); if(perm!=='granted'){ alert('Para recibir avisos debes permitir las notificaciones en el navegador.'); updateNotifBtn(); return; } var reg=swReg||await navigator.serviceWorker.ready; var sub=await reg.pushManager.getSubscription(); if(!sub){ sub=await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:urlB64ToUint8(VAPID_PUBLIC) }); } var j=sub.toJSON(); await db.from('push_subs').insert({ endpoint:j.endpoint, p256dh:j.keys.p256dh, auth:j.keys.auth }); updateNotifBtn(); alert('¡Avisos activados en este dispositivo! Te llegarán a las 9 y 10 aunque tengas la app cerrada.'); }catch(e){ console.error(e); alert('No se pudo activar: '+(e&&e.message?e.message:e)); } }
   var notifBtnEl=document.getElementById('notifBtn'); if(notifBtnEl){ notifBtnEl.addEventListener('click', activarAvisos); }
 
+  // ===== Capturar correo por foto (OCR local con Tesseract.js) =====
+  var fotoDataUrl=null;
+  function openFoto(){ var m=document.getElementById('fotoModal'); if(m) m.classList.remove('hidden'); }
+  function closeFoto(){ var m=document.getElementById('fotoModal'); if(m) m.classList.add('hidden'); }
+  function resetFoto(){ fotoDataUrl=null; var f=document.getElementById('fotoFile'); if(f) f.value=''; var p=document.getElementById('fotoPrev'); if(p){ p.classList.add('hidden'); p.src=''; } var r=document.getElementById('fotoResult'); if(r) r.classList.add('hidden'); var pr=document.getElementById('fotoProg'); if(pr) pr.textContent=''; var rd=document.getElementById('fotoRead'); if(rd) rd.disabled=true; }
+  async function leerFoto(){
+    if(!fotoDataUrl){ return; }
+    if(typeof Tesseract==='undefined'){ document.getElementById('fotoProg').textContent='La herramienta de lectura aún se está cargando, espera unos segundos e intenta de nuevo.'; return; }
+    var prog=document.getElementById('fotoProg'); var btn=document.getElementById('fotoRead');
+    btn.disabled=true; prog.textContent='Leyendo la imagen… (la primera vez puede tardar un poco)';
+    try{
+      var res=await Tesseract.recognize(fotoDataUrl, 'spa+eng', { logger:function(m){ if(m.status==='recognizing text'){ prog.textContent='Leyendo… '+Math.round((m.progress||0)*100)+'%'; } } });
+      var text=((res && res.data && res.data.text) || '').replace(/\n{3,}/g,'\n\n').trim();
+      document.getElementById('fotoText').value=text;
+      var lines=text.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>3;});
+      document.getElementById('fotoTitle').value=(lines[0]||'Correo importante').slice(0,90);
+      document.getElementById('fotoResult').classList.remove('hidden');
+      prog.textContent='✔ Listo. Revisa el título y edita el texto si hace falta.';
+    }catch(e){ console.error(e); prog.textContent='No se pudo leer la imagen. Intenta con una foto más clara.'; }
+    btn.disabled=false;
+  }
+  async function agregarDesdeFoto(){
+    var t=document.getElementById('fotoTitle').value.trim(); if(!t){ alert('Escribe un título para el pendiente.'); return; }
+    var obj={ titulo:t, tipo:document.getElementById('fotoType').value, fecha:document.getElementById('fotoDate').value||null, prioridad:document.getElementById('fotoPrio').value, nota:document.getElementById('fotoText').value.trim()||null, hecha:false, eliminada:false };
+    var r=await db.from(TABLE).insert(obj); if(r.error){ alert('Error al guardar: '+r.error.message); return; }
+    closeFoto(); resetFoto(); await load(); alert('¡Correo agregado a tus pendientes! 📥');
+  }
+  var _fb=document.getElementById('fotoBtn'); if(_fb) _fb.addEventListener('click', openFoto);
+  var _fc=document.getElementById('fotoClose'); if(_fc) _fc.addEventListener('click', function(){ closeFoto(); });
+  var _ff=document.getElementById('fotoFile'); if(_ff) _ff.addEventListener('change', function(e){ var f=e.target.files && e.target.files[0]; if(!f) return; var rd=new FileReader(); rd.onload=function(){ fotoDataUrl=rd.result; var img=document.getElementById('fotoPrev'); img.src=fotoDataUrl; img.classList.remove('hidden'); document.getElementById('fotoRead').disabled=false; document.getElementById('fotoProg').textContent='Imagen lista. Toca "Leer correo".'; }; rd.readAsDataURL(f); });
+  var _fr=document.getElementById('fotoRead'); if(_fr) _fr.addEventListener('click', leerFoto);
+  var _fa=document.getElementById('fotoAdd'); if(_fa) _fa.addEventListener('click', agregarDesdeFoto);
+  var _fm=document.getElementById('fotoModal'); if(_fm) _fm.addEventListener('click', function(e){ if(e.target===_fm) closeFoto(); });
+
   var now=new Date(); var h=now.getHours();
   document.getElementById('greet').textContent = h<12?'Buenos días':h<19?'Buenas tardes':'Buenas noches';
   document.getElementById('today').textContent = now.toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long',year:'numeric'});

@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Pendientes">
 <link rel="manifest" href="manifest.json">
 <title>Mis Pendientes</title>
-<link rel="stylesheet" href="styles.css?v=10">
+<link rel="stylesheet" href="styles.css?v=11">
 </head>
 <body>
 <div class="wrap">
@@ -49,6 +49,9 @@
     <div class="row" style="margin-top:8px;">
       <textarea id="newNote" placeholder="Detalle opcional (a quién, asunto, notas)…" rows="1" style="flex:1 1 100%;resize:vertical;"></textarea>
     </div>
+    <div class="row" style="margin-top:8px;">
+      <button class="btn ghost" id="fotoBtn" type="button">📷 Capturar correo por foto</button>
+    </div>
   </section>
   <div class="tabs" id="tabs">
     <button class="tab active" data-tab="todos">Todo <span class="count" id="c-todos">0</span></button>
@@ -66,8 +69,42 @@
   <div class="list" id="list"><div class="empty">Cargando…</div></div>
   <footer>Tus datos se guardan en la nube (Supabase). Puedes abrir esta página desde cualquier dispositivo.</footer>
 </div>
+
+<div id="fotoModal" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-head"><strong>📷 Capturar correo por foto</strong><button class="act" id="fotoClose" type="button">✕ Cerrar</button></div>
+    <p class="modal-hint">Toma o sube una foto (o captura de pantalla) del correo. Se lee <strong>dentro de tu navegador</strong>: la imagen no sale de tu dispositivo.</p>
+    <input type="file" id="fotoFile" accept="image/*" capture="environment">
+    <img id="fotoPrev" class="hidden" alt="vista previa">
+    <button class="btn" id="fotoRead" type="button" disabled>Leer correo</button>
+    <div id="fotoProg" class="modal-hint"></div>
+    <div id="fotoResult" class="hidden">
+      <label class="modal-lbl">Título del pendiente</label>
+      <input type="text" id="fotoTitle" placeholder="Ej: Responder a Recursos Humanos">
+      <label class="modal-lbl">Texto detectado (puedes editarlo)</label>
+      <textarea id="fotoText" rows="5"></textarea>
+      <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:8px;">
+        <select id="fotoType">
+          <option value="responder">📥 Correo por responder</option>
+          <option value="enviar">📤 Correo por enviar</option>
+          <option value="tarea">📋 Tarea</option>
+          <option value="nota">🗒️ Nota</option>
+        </select>
+        <input type="date" id="fotoDate" title="Fecha (opcional)">
+        <select id="fotoPrio">
+          <option value="media">Prioridad media</option>
+          <option value="alta">Prioridad alta</option>
+          <option value="baja">Prioridad baja</option>
+        </select>
+      </div>
+      <button class="btn" id="fotoAdd" type="button" style="margin-top:12px;">＋ Agregar a mis pendientes</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=10"></script>
-<script src="app.js?v=10"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="config.js?v=11"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>
