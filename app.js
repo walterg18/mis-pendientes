@@ -3,6 +3,10 @@
   var SB_URL = C.SB_URL, SB_KEY = C.SB_KEY, TABLE = C.TABLE || 'notas_pendientes';
   var db = window.supabase.createClient(SB_URL, SB_KEY);
   var items = []; var activeTab = 'todos';
+  var PRIO_ORDER = {alta:0, media:1, baja:2};
+  var sortMode = 'prioridad'; try{ var _sm=localStorage.getItem('mp_sort'); if(_sm) sortMode=_sm; }catch(e){}
+  function typeOptions(sel){ var o=[['tarea','📋 Tarea'],['responder','📥 Correo por responder'],['enviar','📤 Correo por enviar'],['nota','🗒️ Nota']]; return o.map(function(x){return '<option value="'+x[0]+'"'+(x[0]===sel?' selected':'')+'>'+x[1]+'</option>';}).join(''); }
+  function prioOptions(sel){ var o=[['alta','🔴 Prioridad alta'],['media','🟠 Prioridad media'],['baja','⚪ Prioridad baja']]; return o.map(function(x){return '<option value="'+x[0]+'"'+(x[0]===sel?' selected':'')+'>'+x[1]+'</option>';}).join(''); }
   var TYPE_LABEL = {tarea:'Tarea', responder:'Correo por responder', enviar:'Correo por enviar', nota:'Nota'};
   var TYPE_ICON  = {tarea:'📋', responder:'📥', enviar:'📤', nota:'🗒️'};
   var STAT_LABEL = {stat_vencidos:'Vencidos', stat_hoy:'Para hoy', stat_proximos:'Próximos 7 días', stat_completados:'Completados hoy'};
@@ -18,7 +22,7 @@
   function dateClass(s,done){ if(done) return 'done'; if(!s) return 'nodate'; var d=dayDiff(s); if(d<0) return 'overdue'; if(d===0) return 'today'; return 'upcoming'; }
   function dateBadge(s){ var d=dayDiff(s); var cls='date-upcoming'; var txt=fmtDate(s); if(d<0){cls='date-overdue';txt='Vencido · '+fmtDate(s)+(d===-1?' (ayer)':' ('+(-d)+' días)');} else if(d===0){cls='date-today';txt='Hoy';} else if(d===1){txt='Mañana';} else {txt='En '+d+' días · '+fmtDate(s);} return '<span class="badge '+cls+'">📅 '+txt+'</span>'; }
   function esc(s){ return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
-  function sortPending(arr){ return arr.slice().sort(function(a,b){ if(a.fecha&&b.fecha) return a.fecha<b.fecha?-1:(a.fecha>b.fecha?1:0); if(a.fecha) return -1; if(b.fecha) return 1; return (b.creado||'')<(a.creado||'')?-1:1; }); }
+  function sortPending(arr){ return arr.slice().sort(function(a,b){ if(sortMode==='prioridad'){ var pa=PRIO_ORDER[a.prioridad]; if(pa===undefined)pa=1; var pb=PRIO_ORDER[b.prioridad]; if(pb===undefined)pb=1; if(pa!==pb) return pa-pb; } if(a.fecha&&b.fecha) return a.fecha<b.fecha?-1:(a.fecha>b.fecha?1:0); if(a.fecha) return -1; if(b.fecha) return 1; return (b.creado||'')<(a.creado||'')?-1:1; }); }
   function byStamp(arr,field){ return arr.slice().sort(function(a,b){ return (b[field]||'')<(a[field]||'')?-1:1; }); }
 
   // filtros de estado
@@ -65,7 +69,7 @@
     if(activeTab==='historial'){ info.textContent='Lo que ya completaste (más reciente primero)'; }
     else if(activeTab==='papelera'){ info.textContent='Elementos eliminados — puedes restaurarlos'; if(counts.papelera>0) trashBtn.classList.remove('hidden'); }
     else if(activeTab.indexOf('stat_')===0){ info.textContent='Mostrando: '+STAT_LABEL[activeTab]+' · toca una pestaña para volver'; }
-    else { info.textContent='Ordenado por fecha (lo urgente primero)'; }
+    else { info.textContent=''; }
 
     // lista
     var list=document.getElementById('list'); var filtered;
@@ -139,6 +143,7 @@
         (it.nota?'<div class="note-text">'+esc(it.nota)+'</div>':'')+
         '<div class="meta">'+badges+'</div>'+
         '<div class="item-actions">'+
+          '<button class="act" data-act="editar">✏️ Editar</button>'+
           '<button class="act" data-act="seguir">'+(it.seguir?'🔁 Dejar de seguir':'🔁 Seguir')+'</button>'+
           '<button class="act" data-act="snooze">⏰ +1 día</button>'+
           '<button class="act" data-act="resched">📆 Reagendar</button>'+
@@ -150,6 +155,18 @@
           '<button class="btn mini" data-act="saveresched">Guardar</button>'+
           '<button class="act" data-act="cancelresched">Cancelar</button>'+
           '<button class="act" data-act="cleardate">Quitar fecha</button>'+
+        '</div>'+
+        '<div class="editar hidden" data-editar>'+
+          '<input type="text" data-etitulo value="'+esc(it.titulo)+'">'+
+          '<textarea data-enota rows="2" placeholder="Detalle (opcional)">'+esc(it.nota||'')+'</textarea>'+
+          '<div class="erow">'+
+            '<select data-etipo>'+typeOptions(it.tipo)+'</select>'+
+            '<select data-eprio>'+prioOptions(it.prioridad||'media')+'</select>'+
+          '</div>'+
+          '<div style="margin-top:8px;display:flex;gap:6px;">'+
+            '<button class="btn mini" data-act="saveedit">Guardar cambios</button>'+
+            '<button class="act" data-act="canceledit">Cancelar</button>'+
+          '</div>'+
         '</div>'+
       '</div>'+
     '</div>';
@@ -166,6 +183,9 @@
     else if(act==='snooze'){ var base=it.fecha&&dayDiff(it.fecha)>0?it.fecha:todayStr(); var d=new Date(base+'T00:00:00'); d.setDate(d.getDate()+1); var m=('0'+(d.getMonth()+1)).slice(-2); var day=('0'+d.getDate()).slice(-2); var upd={fecha:d.getFullYear()+'-'+m+'-'+day}; if(it.recordar_en){ var rd=new Date(it.recordar_en); rd.setDate(rd.getDate()+1); upd.recordar_en=rd.toISOString(); upd.notificada=false; } patch(it.id,upd); }
     else if(act==='resched'){ itemEl.querySelector('[data-resched]').classList.toggle('hidden'); }
     else if(act==='cancelresched'){ itemEl.querySelector('[data-resched]').classList.add('hidden'); }
+    else if(act==='editar'){ itemEl.querySelector('[data-editar]').classList.toggle('hidden'); }
+    else if(act==='canceledit'){ itemEl.querySelector('[data-editar]').classList.add('hidden'); }
+    else if(act==='saveedit'){ var nt=itemEl.querySelector('[data-etitulo]').value.trim(); if(!nt){ alert('El título no puede quedar vacío.'); return; } patch(it.id,{ titulo:nt, nota:itemEl.querySelector('[data-enota]').value.trim()||null, tipo:itemEl.querySelector('[data-etipo]').value, prioridad:itemEl.querySelector('[data-eprio]').value }); }
     else if(act==='saveresched'){ var nd=itemEl.querySelector('[data-newdate]').value||null; var ntEl=itemEl.querySelector('[data-newtime]'); var nt=ntEl?ntEl.value:''; patch(it.id,{fecha:nd, recordar_en:buildRecordar(nd,nt), notificada:false}); }
     else if(act==='cleardate'){ patch(it.id,{fecha:null, recordar_en:null, notificada:false}); }
   });
@@ -179,6 +199,7 @@
     await load();
   });
   document.getElementById('tabs').addEventListener('click', function(e){ var t=e.target.closest('.tab'); if(!t) return; activeTab=t.dataset.tab; var all=document.querySelectorAll('.tab'); for(var i=0;i<all.length;i++) all[i].classList.remove('active'); t.classList.add('active'); render(); });
+  var sortSel=document.getElementById('sortMode'); if(sortSel){ sortSel.value=sortMode; sortSel.addEventListener('change', function(){ sortMode=sortSel.value; try{ localStorage.setItem('mp_sort', sortMode); }catch(e){} render(); }); }
   var briefStats=document.querySelector('.brief-stats');
   if(briefStats){ briefStats.addEventListener('click', function(e){ var s=e.target.closest('.stat'); if(!s||!s.dataset.filter) return; activeTab='stat_'+s.dataset.filter; var all=document.querySelectorAll('.tab'); for(var i=0;i<all.length;i++) all[i].classList.remove('active'); render(); }); }
 
