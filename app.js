@@ -24,20 +24,20 @@
   function isTrash(it){ return it.eliminada; }
 
   async function load(){ setStatus('Cargando…'); var r=await db.from(TABLE).select('*'); if(r.error){ setStatus('Error de conexión'); console.error(r.error); return; } items=r.data||[]; setStatus('✔ Guardado en la nube'); render(); }
-  async function addItem(){ var t=document.getElementById('newTitle').value.trim(); if(!t){ document.getElementById('newTitle').focus(); return; } var obj={titulo:t, tipo:document.getElementById('newType').value, fecha:document.getElementById('newDate').value||null, prioridad:document.getElementById('newPrio').value, nota:document.getElementById('newNote').value.trim()||null, hecha:false, eliminada:false}; setStatus('Guardando…'); var r=await db.from(TABLE).insert(obj).select(); if(r.error){ setStatus('Error al guardar'); console.error(r.error); return; } document.getElementById('newTitle').value=''; document.getElementById('newDate').value=''; document.getElementById('newNote').value=''; await load(); }
+  async function addItem(){ var t=document.getElementById('newTitle').value.trim(); if(!t){ document.getElementById('newTitle').focus(); return; } var segEl=document.getElementById('newSeguir'); var obj={titulo:t, tipo:document.getElementById('newType').value, fecha:document.getElementById('newDate').value||null, prioridad:document.getElementById('newPrio').value, nota:document.getElementById('newNote').value.trim()||null, hecha:false, eliminada:false, seguir: segEl?segEl.checked:false}; setStatus('Guardando…'); var r=await db.from(TABLE).insert(obj).select(); if(r.error){ setStatus('Error al guardar'); console.error(r.error); return; } document.getElementById('newTitle').value=''; document.getElementById('newDate').value=''; document.getElementById('newNote').value=''; if(segEl) segEl.checked=false; await load(); }
   async function patch(id,fields){ setStatus('Guardando…'); var r=await db.from(TABLE).update(fields).eq('id',id); if(r.error){ setStatus('Error al guardar'); console.error(r.error); return; } await load(); }
   async function hardRemove(id){ setStatus('Eliminando…'); var r=await db.from(TABLE).delete().eq('id',id); if(r.error){ setStatus('Error'); console.error(r.error); return; } await load(); }
   function findById(id){ for(var i=0;i<items.length;i++){ if(String(items[i].id)===String(id)) return items[i]; } return null; }
 
   function render(){
     // contadores
-    var counts={todos:0,tarea:0,responder:0,enviar:0,nota:0,historial:0,papelera:0};
+    var counts={todos:0,tarea:0,responder:0,enviar:0,nota:0,seguimiento:0,historial:0,papelera:0};
     items.forEach(function(it){
       if(isTrash(it)){ counts.papelera++; return; }
       if(isHistory(it)){ counts.historial++; return; }
-      counts.todos++; if(counts[it.tipo]!==undefined) counts[it.tipo]++;
+      counts.todos++; if(counts[it.tipo]!==undefined) counts[it.tipo]++; if(it.seguir) counts.seguimiento++;
     });
-    ['todos','tarea','responder','enviar','nota','historial','papelera'].forEach(function(k){ document.getElementById('c-'+k).textContent=counts[k]; });
+    ['todos','tarea','responder','enviar','nota','seguimiento','historial','papelera'].forEach(function(k){ var el=document.getElementById('c-'+k); if(el) el.textContent=counts[k]; });
 
     // resumen del día (solo pendientes activos)
     var over=0,tod=0,soon=0,doneToday=0;
@@ -47,10 +47,10 @@
       var d=dayDiff(it.fecha); if(d===null) return; if(d<0) over++; else if(d===0) tod++; else if(d<=7) soon++;
     });
     document.getElementById('s-over').textContent=over; document.getElementById('s-today').textContent=tod; document.getElementById('s-soon').textContent=soon; document.getElementById('s-done').textContent=doneToday;
-    var urgent=sortPending(items.filter(function(it){ return isPending(it)&&it.fecha&&dayDiff(it.fecha)<=0; })).slice(0,5);
+    var urgent=sortPending(items.filter(function(it){ return isPending(it) && ((it.fecha&&dayDiff(it.fecha)<=0) || it.seguir); })).slice(0,6);
     var bl=document.getElementById('briefList');
-    if(urgent.length){ bl.innerHTML=urgent.map(function(it){ var c=dateClass(it.fecha,false); var color=c==='overdue'?'var(--red)':'var(--amber)'; return '<div class="brief-item"><span class="dot" style="background:'+color+'"></span><strong>'+TYPE_ICON[it.tipo]+'</strong> '+esc(it.titulo)+' <span style="color:var(--muted);margin-left:auto;font-size:12px">'+(dayDiff(it.fecha)<0?'vencido':'hoy')+'</span></div>'; }).join(''); }
-    else { bl.innerHTML='<div class="brief-empty">🎉 Nada vencido ni para hoy. ¡Vas al día!</div>'; }
+    if(urgent.length){ bl.innerHTML=urgent.map(function(it){ var d=it.fecha?dayDiff(it.fecha):null; var isOver=d!==null&&d<0; var isToday=d===0; var color=isOver?'var(--red)':(isToday?'var(--amber)':'var(--accent)'); var lbl=isOver?'vencido':(isToday?'hoy':'🔁 seguir'); return '<div class="brief-item"><span class="dot" style="background:'+color+'"></span><strong>'+TYPE_ICON[it.tipo]+'</strong> '+esc(it.titulo)+' <span style="color:var(--muted);margin-left:auto;font-size:12px">'+lbl+'</span></div>'; }).join(''); }
+    else { bl.innerHTML='<div class="brief-empty">🎉 Nada vencido, para hoy ni en seguimiento. ¡Vas al día!</div>'; }
 
     // resaltar la tarjeta del resumen seleccionada
     var statEls=document.querySelectorAll('.brief-stats .stat');
@@ -72,12 +72,14 @@
     else if(activeTab==='stat_hoy'){ filtered=sortPending(items.filter(function(it){ return isPending(it)&&it.fecha&&dayDiff(it.fecha)===0; })); }
     else if(activeTab==='stat_proximos'){ filtered=sortPending(items.filter(function(it){ return isPending(it)&&it.fecha&&dayDiff(it.fecha)>=1&&dayDiff(it.fecha)<=7; })); }
     else if(activeTab==='stat_completados'){ filtered=byStamp(items.filter(function(it){ return isHistory(it)&&it.hecha_en===todayStr(); }),'hecha_en'); }
+    else if(activeTab==='seguimiento'){ filtered=sortPending(items.filter(function(it){ return isPending(it)&&it.seguir; })); }
     else { filtered=sortPending(items.filter(function(it){ return isPending(it) && (activeTab==='todos'?true:it.tipo===activeTab); })); }
 
     if(!filtered.length){
       var msg;
       if(activeTab==='papelera') msg='La papelera está vacía. 🗑️';
       else if(activeTab==='historial') msg='Aquí aparecerá lo que vayas completando. ✅';
+      else if(activeTab==='seguimiento') msg='Nada en seguimiento. Al agregar algo sin fecha que no quieras olvidar, marca la casilla 🔁.';
       else if(activeTab==='stat_vencidos') msg='No tienes nada vencido. 🎉';
       else if(activeTab==='stat_hoy') msg='No tienes nada para hoy. 🎉';
       else if(activeTab==='stat_proximos') msg='Nada en los próximos 7 días.';
@@ -121,8 +123,9 @@
       '</div>';
     }
     // PENDIENTES
-    var cls=dateClass(it.fecha,false); var badges='';
+    var cls='pr-'+prio; var badges='';
     if(it.fecha) badges+=dateBadge(it.fecha);
+    if(it.seguir) badges+='<span class="badge seguir">🔁 En seguimiento</span>';
     badges+='<span class="badge prio-'+prio+'">'+(prio==='alta'?'🔴':prio==='media'?'🟠':'⚪')+' '+prio+'</span>';
     badges+='<span class="badge prio-baja">'+TYPE_ICON[it.tipo]+' '+TYPE_LABEL[it.tipo]+'</span>';
     return '<div class="item '+cls+'" data-id="'+it.id+'">'+
@@ -132,6 +135,7 @@
         (it.nota?'<div class="note-text">'+esc(it.nota)+'</div>':'')+
         '<div class="meta">'+badges+'</div>'+
         '<div class="item-actions">'+
+          '<button class="act" data-act="seguir">'+(it.seguir?'🔁 Dejar de seguir':'🔁 Seguir')+'</button>'+
           '<button class="act" data-act="snooze">⏰ +1 día</button>'+
           '<button class="act" data-act="resched">📆 Reagendar</button>'+
           '<button class="act del" data-act="del">🗑 Eliminar</button>'+
@@ -152,6 +156,7 @@
     else if(act==='reopen'){ patch(it.id,{hecha:false, hecha_en:null}); }
     else if(act==='del'){ patch(it.id,{eliminada:true, eliminada_en:new Date().toISOString()}); }
     else if(act==='restore'){ patch(it.id,{eliminada:false, eliminada_en:null}); }
+    else if(act==='seguir'){ patch(it.id,{seguir:!it.seguir}); }
     else if(act==='harddel'){ if(confirm('¿Borrar definitivamente "'+it.titulo+'"? Esto no se puede deshacer.')) hardRemove(it.id); }
     else if(act==='snooze'){ var base=it.fecha&&dayDiff(it.fecha)>0?it.fecha:todayStr(); var d=new Date(base+'T00:00:00'); d.setDate(d.getDate()+1); var m=('0'+(d.getMonth()+1)).slice(-2); var day=('0'+d.getDate()).slice(-2); patch(it.id,{fecha:d.getFullYear()+'-'+m+'-'+day}); }
     else if(act==='resched'){ itemEl.querySelector('[data-resched]').classList.toggle('hidden'); }

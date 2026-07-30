@@ -47,7 +47,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 
 .item.today{border-left-color:var(--amber);}
 .item.upcoming{border-left-color:var(--blue);}
 .item.nodate{border-left-color:var(--line);}
+.item.pr-alta{border-left-color:var(--red);}
+.item.pr-media{border-left-color:var(--amber);}
+.item.pr-baja{border-left-color:#94a3b8;}
 .item.done{border-left-color:var(--green)!important;}
+.badge.seguir{background:var(--accent-soft);color:var(--accent);}
 .check{width:20px;height:20px;border:2px solid var(--line);border-radius:6px;cursor:pointer;flex:none;margin-top:1px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;}
 .check.on{background:var(--green);border-color:var(--green);}
 .item-main{flex:1;min-width:0;}
