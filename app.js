@@ -214,9 +214,9 @@
 
   // ===== Capturar correo por foto (OCR local con Tesseract.js) =====
   var fotoDataUrl=null;
-  function openFoto(){ var m=document.getElementById('fotoModal'); if(m) m.classList.remove('hidden'); }
+  function openFoto(){ resetFoto(); var m=document.getElementById('fotoModal'); if(m) m.classList.remove('hidden'); }
   function closeFoto(){ var m=document.getElementById('fotoModal'); if(m) m.classList.add('hidden'); }
-  function resetFoto(){ fotoDataUrl=null; var f=document.getElementById('fotoFile'); if(f) f.value=''; var p=document.getElementById('fotoPrev'); if(p){ p.classList.add('hidden'); p.src=''; } var r=document.getElementById('fotoResult'); if(r) r.classList.add('hidden'); var pr=document.getElementById('fotoProg'); if(pr) pr.textContent=''; var rd=document.getElementById('fotoRead'); if(rd) rd.disabled=true; }
+  function resetFoto(){ fotoDataUrl=null; var f=document.getElementById('fotoFile'); if(f) f.value=''; var p=document.getElementById('fotoPrev'); if(p){ p.classList.add('hidden'); p.src=''; } var r=document.getElementById('fotoResult'); if(r) r.classList.add('hidden'); var pr=document.getElementById('fotoProg'); if(pr) pr.textContent=''; var rd=document.getElementById('fotoRead'); if(rd) rd.disabled=true; var ti=document.getElementById('fotoTitle'); if(ti) ti.value=''; var tx=document.getElementById('fotoText'); if(tx) tx.value=''; var fd=document.getElementById('fotoDate'); if(fd) fd.value=''; }
   function parseCorreo(text){
     var lines=text.split(/\r?\n/).map(function(l){return l.replace(/^\s+|\s+$/g,'');}).filter(function(l){return l.length>0;});
     var subject='', sender='';
