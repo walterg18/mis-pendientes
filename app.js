@@ -186,7 +186,7 @@
     var btn=e.target.closest('[data-act]'); if(!btn) return; var itemEl=e.target.closest('.item'); if(!itemEl) return; var it=findById(itemEl.dataset.id); if(!it) return; var act=btn.dataset.act;
     if(act==='toggle'){ if(confirm('¿Ya completaste "'+it.titulo+'"?\n\nSe moverá a tu Historial. (Podrás reabrirla si te equivocas.)')) patch(it.id,{hecha:true, hecha_en:todayStr()}); }
     else if(act==='reopen'){ patch(it.id,{hecha:false, hecha_en:null}); }
-    else if(act==='del'){ patch(it.id,{eliminada:true, eliminada_en:new Date().toISOString()}); }
+    else if(act==='del'){ if(confirm('¿Eliminar "'+it.titulo+'"?\n\nSe enviará a la Papelera (podrás restaurarla si te equivocas).')) patch(it.id,{eliminada:true, eliminada_en:new Date().toISOString()}); }
     else if(act==='restore'){ patch(it.id,{eliminada:false, eliminada_en:null}); }
     else if(act==='seguir'){ patch(it.id,{seguir:!it.seguir}); }
     else if(act==='harddel'){ if(confirm('¿Borrar definitivamente "'+it.titulo+'"? Esto no se puede deshacer.')) hardRemove(it.id); }
