@@ -12,6 +12,9 @@
   function dayDiff(s){ if(!s) return null; var a=new Date(s+'T00:00:00'); var b=new Date(todayStr()+'T00:00:00'); return Math.round((a-b)/86400000); }
   function fmtDate(s){ var d=new Date(s+'T00:00:00'); return d.toLocaleDateString('es',{day:'numeric',month:'short'}); }
   function fmtStamp(s){ if(!s) return ''; var d=new Date(s); return d.toLocaleDateString('es',{day:'numeric',month:'short',year:'numeric'}); }
+  function horaLocal(iso){ if(!iso) return ''; var d=new Date(iso); if(isNaN(d)) return ''; return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
+  function horaLegible(iso){ if(!iso) return ''; var d=new Date(iso); if(isNaN(d)) return ''; return d.toLocaleTimeString('es',{hour:'numeric',minute:'2-digit'}); }
+  function buildRecordar(dateStr,timeStr){ if(!timeStr) return null; var base=dateStr||todayStr(); var d=new Date(base+'T'+timeStr); return isNaN(d)?null:d.toISOString(); }
   function dateClass(s,done){ if(done) return 'done'; if(!s) return 'nodate'; var d=dayDiff(s); if(d<0) return 'overdue'; if(d===0) return 'today'; return 'upcoming'; }
   function dateBadge(s){ var d=dayDiff(s); var cls='date-upcoming'; var txt=fmtDate(s); if(d<0){cls='date-overdue';txt='Vencido · '+fmtDate(s)+(d===-1?' (ayer)':' ('+(-d)+' días)');} else if(d===0){cls='date-today';txt='Hoy';} else if(d===1){txt='Mañana';} else {txt='En '+d+' días · '+fmtDate(s);} return '<span class="badge '+cls+'">📅 '+txt+'</span>'; }
   function esc(s){ return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
@@ -24,7 +27,7 @@
   function isTrash(it){ return it.eliminada; }
 
   async function load(){ setStatus('Cargando…'); var r=await db.from(TABLE).select('*'); if(r.error){ setStatus('Error de conexión'); console.error(r.error); return; } items=r.data||[]; setStatus('✔ Guardado en la nube'); render(); }
-  async function addItem(){ var t=document.getElementById('newTitle').value.trim(); if(!t){ document.getElementById('newTitle').focus(); return; } var segEl=document.getElementById('newSeguir'); var obj={titulo:t, tipo:document.getElementById('newType').value, fecha:document.getElementById('newDate').value||null, prioridad:document.getElementById('newPrio').value, nota:document.getElementById('newNote').value.trim()||null, hecha:false, eliminada:false, seguir: segEl?segEl.checked:false}; setStatus('Guardando…'); var r=await db.from(TABLE).insert(obj).select(); if(r.error){ setStatus('Error al guardar'); console.error(r.error); return; } document.getElementById('newTitle').value=''; document.getElementById('newDate').value=''; document.getElementById('newNote').value=''; if(segEl) segEl.checked=false; await load(); }
+  async function addItem(){ var t=document.getElementById('newTitle').value.trim(); if(!t){ document.getElementById('newTitle').focus(); return; } var segEl=document.getElementById('newSeguir'); var fechaV=document.getElementById('newDate').value||null; var horaV=(document.getElementById('newHora')||{}).value||''; var obj={titulo:t, tipo:document.getElementById('newType').value, fecha:fechaV, recordar_en:buildRecordar(fechaV,horaV), notificada:false, prioridad:document.getElementById('newPrio').value, nota:document.getElementById('newNote').value.trim()||null, hecha:false, eliminada:false, seguir: segEl?segEl.checked:false}; setStatus('Guardando…'); var r=await db.from(TABLE).insert(obj).select(); if(r.error){ setStatus('Error al guardar'); console.error(r.error); return; } document.getElementById('newTitle').value=''; document.getElementById('newDate').value=''; if(document.getElementById('newHora')) document.getElementById('newHora').value=''; document.getElementById('newNote').value=''; if(segEl) segEl.checked=false; await load(); }
   async function patch(id,fields){ setStatus('Guardando…'); var r=await db.from(TABLE).update(fields).eq('id',id); if(r.error){ setStatus('Error al guardar'); console.error(r.error); return; } await load(); }
   async function hardRemove(id){ setStatus('Eliminando…'); var r=await db.from(TABLE).delete().eq('id',id); if(r.error){ setStatus('Error'); console.error(r.error); return; } await load(); }
   function findById(id){ for(var i=0;i<items.length;i++){ if(String(items[i].id)===String(id)) return items[i]; } return null; }
@@ -125,6 +128,7 @@
     // PENDIENTES
     var cls='pr-'+prio; var badges='';
     if(it.fecha) badges+=dateBadge(it.fecha);
+    if(it.recordar_en) badges+='<span class="badge hora">⏰ '+horaLegible(it.recordar_en)+'</span>';
     if(it.seguir) badges+='<span class="badge seguir">🔁 En seguimiento</span>';
     badges+='<span class="badge prio-'+prio+'">'+(prio==='alta'?'🔴':prio==='media'?'🟠':'⚪')+' '+prio+'</span>';
     badges+='<span class="badge prio-baja">'+TYPE_ICON[it.tipo]+' '+TYPE_LABEL[it.tipo]+'</span>';
@@ -142,6 +146,7 @@
         '</div>'+
         '<div class="reschedule hidden" data-resched>'+
           '<input type="date" data-newdate value="'+(it.fecha||'')+'">'+
+          '<input type="time" data-newtime value="'+horaLocal(it.recordar_en)+'" title="Hora de aviso">'+
           '<button class="btn mini" data-act="saveresched">Guardar</button>'+
           '<button class="act" data-act="cancelresched">Cancelar</button>'+
           '<button class="act" data-act="cleardate">Quitar fecha</button>'+
@@ -158,11 +163,11 @@
     else if(act==='restore'){ patch(it.id,{eliminada:false, eliminada_en:null}); }
     else if(act==='seguir'){ patch(it.id,{seguir:!it.seguir}); }
     else if(act==='harddel'){ if(confirm('¿Borrar definitivamente "'+it.titulo+'"? Esto no se puede deshacer.')) hardRemove(it.id); }
-    else if(act==='snooze'){ var base=it.fecha&&dayDiff(it.fecha)>0?it.fecha:todayStr(); var d=new Date(base+'T00:00:00'); d.setDate(d.getDate()+1); var m=('0'+(d.getMonth()+1)).slice(-2); var day=('0'+d.getDate()).slice(-2); patch(it.id,{fecha:d.getFullYear()+'-'+m+'-'+day}); }
+    else if(act==='snooze'){ var base=it.fecha&&dayDiff(it.fecha)>0?it.fecha:todayStr(); var d=new Date(base+'T00:00:00'); d.setDate(d.getDate()+1); var m=('0'+(d.getMonth()+1)).slice(-2); var day=('0'+d.getDate()).slice(-2); var upd={fecha:d.getFullYear()+'-'+m+'-'+day}; if(it.recordar_en){ var rd=new Date(it.recordar_en); rd.setDate(rd.getDate()+1); upd.recordar_en=rd.toISOString(); upd.notificada=false; } patch(it.id,upd); }
     else if(act==='resched'){ itemEl.querySelector('[data-resched]').classList.toggle('hidden'); }
     else if(act==='cancelresched'){ itemEl.querySelector('[data-resched]').classList.add('hidden'); }
-    else if(act==='saveresched'){ patch(it.id,{fecha:itemEl.querySelector('[data-newdate]').value||null}); }
-    else if(act==='cleardate'){ patch(it.id,{fecha:null}); }
+    else if(act==='saveresched'){ var nd=itemEl.querySelector('[data-newdate]').value||null; var ntEl=itemEl.querySelector('[data-newtime]'); var nt=ntEl?ntEl.value:''; patch(it.id,{fecha:nd, recordar_en:buildRecordar(nd,nt), notificada:false}); }
+    else if(act==='cleardate'){ patch(it.id,{fecha:null, recordar_en:null, notificada:false}); }
   });
   document.getElementById('addBtn').addEventListener('click', addItem);
   document.getElementById('newTitle').addEventListener('keydown', function(e){ if(e.key==='Enter') addItem(); });

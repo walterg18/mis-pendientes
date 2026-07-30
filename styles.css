@@ -52,6 +52,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 
 .item.pr-baja{border-left-color:#94a3b8;}
 .item.done{border-left-color:var(--green)!important;}
 .badge.seguir{background:var(--accent-soft);color:var(--accent);}
+.badge.hora{background:#e0f2fe;color:#0369a1;}
 .check{width:20px;height:20px;border:2px solid var(--line);border-radius:6px;cursor:pointer;flex:none;margin-top:1px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;}
 .check.on{background:var(--green);border-color:var(--green);}
 .item-main{flex:1;min-width:0;}
