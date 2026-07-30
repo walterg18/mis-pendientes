@@ -217,6 +217,36 @@
   function openFoto(){ var m=document.getElementById('fotoModal'); if(m) m.classList.remove('hidden'); }
   function closeFoto(){ var m=document.getElementById('fotoModal'); if(m) m.classList.add('hidden'); }
   function resetFoto(){ fotoDataUrl=null; var f=document.getElementById('fotoFile'); if(f) f.value=''; var p=document.getElementById('fotoPrev'); if(p){ p.classList.add('hidden'); p.src=''; } var r=document.getElementById('fotoResult'); if(r) r.classList.add('hidden'); var pr=document.getElementById('fotoProg'); if(pr) pr.textContent=''; var rd=document.getElementById('fotoRead'); if(rd) rd.disabled=true; }
+  function parseCorreo(text){
+    var lines=text.split(/\r?\n/).map(function(l){return l.replace(/^\s+|\s+$/g,'');}).filter(function(l){return l.length>0;});
+    var subject='', sender='';
+    for(var i=0;i<lines.length;i++){
+      if(!subject){ var ms=lines[i].match(/^(?:asunto|subject)\s*:\s*(.+)/i); if(ms) subject=ms[1].trim(); }
+      if(!sender){ var md=lines[i].match(/^(?:de|from)\s*:\s*(.+)/i); if(md) sender=md[1].trim(); }
+    }
+    var esCorreo=!!(subject||sender);
+    if(!subject){ for(var k=0;k<lines.length;k++){ if(/^(fw|fwd|re)\s*:/i.test(lines[k])){ subject=lines[k]; break; } } }
+    if(!subject) subject=lines[0]||'Correo importante';
+    var headerRe=/^(de|para|cc|c\.?c\.?|enviado|asunto|from|to|sent|subject)\s*:/i;
+    var junkRe=/(consumo de papel|confidencial|no est[aá] autorizado|notif[ií]quelo|uso reservado|si hay problemas con el modo|para verlo en un explorador|respondi[oó] a este mensaje|todas las carpetas|microsoft exchange|responder a todos)/i;
+    var body=[];
+    for(var j=0;j<lines.length;j++){
+      var b=lines[j];
+      if(headerRe.test(b)) continue;
+      if(junkRe.test(b)) continue;
+      if(/^(fw|fwd|re)\s*:/i.test(b)) continue;
+      if(/^(para|cc)\b/i.test(b) && (b.indexOf(';')>=0 || b.indexOf('@')>=0)) continue;
+      if(/^ogtic/i.test(b) && b.length<50) continue;
+      if(b.replace(/[^a-záéíóúñ0-9]/gi,'').length<2) continue;
+      body.push(b);
+    }
+    var bodyText=body.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+    if(bodyText.length>900) bodyText=bodyText.slice(0,900)+'…';
+    var nota='';
+    if(sender) nota+='📤 De: '+sender+'\n\n';
+    nota+=bodyText;
+    return { titulo: subject.replace(/^(fw|fwd|re)\s*:\s*/i,'').trim().slice(0,90), nota: nota.trim(), esCorreo: esCorreo };
+  }
   async function leerFoto(){
     if(!fotoDataUrl){ return; }
     if(typeof Tesseract==='undefined'){ document.getElementById('fotoProg').textContent='La herramienta de lectura aún se está cargando, espera unos segundos e intenta de nuevo.'; return; }
@@ -225,11 +255,12 @@
     try{
       var res=await Tesseract.recognize(fotoDataUrl, 'spa+eng', { logger:function(m){ if(m.status==='recognizing text'){ prog.textContent='Leyendo… '+Math.round((m.progress||0)*100)+'%'; } } });
       var text=((res && res.data && res.data.text) || '').replace(/\n{3,}/g,'\n\n').trim();
-      document.getElementById('fotoText').value=text;
-      var lines=text.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>3;});
-      document.getElementById('fotoTitle').value=(lines[0]||'Correo importante').slice(0,90);
+      var parsed=parseCorreo(text);
+      document.getElementById('fotoText').value=parsed.nota || text;
+      document.getElementById('fotoTitle').value=parsed.titulo || 'Correo importante';
+      var tsel=document.getElementById('fotoType'); if(tsel && parsed.esCorreo) tsel.value='responder';
       document.getElementById('fotoResult').classList.remove('hidden');
-      prog.textContent='✔ Listo. Revisa el título y edita el texto si hace falta.';
+      prog.textContent = parsed.esCorreo ? '✔ Extraje el remitente y el asunto. Revisa y edita si hace falta.' : '✔ Listo. Revisa el título y edita el texto si hace falta.';
     }catch(e){ console.error(e); prog.textContent='No se pudo leer la imagen. Intenta con una foto más clara.'; }
     btn.disabled=false;
   }
