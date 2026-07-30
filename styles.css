@@ -85,5 +85,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 
 #fotoPrev{max-width:100%;max-height:240px;border-radius:10px;border:1px solid var(--line);margin:8px 0;display:block;}
 #fotoModal input[type=text],#fotoModal textarea{width:100%;}
 #fotoModal .row select,#fotoModal .row input[type=date]{flex:1 1 130px;}
+.alarma{display:flex;align-items:center;gap:10px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-weight:600;font-size:14px;animation:alarmaPulse 1.2s ease-in-out infinite;}
+.alarma-ico{font-size:20px;flex:none;}
+.alarma-txt{flex:1;line-height:1.35;}
+.alarma-x{background:none;border:none;color:#991b1b;font-size:15px;cursor:pointer;opacity:.7;flex:none;}
+.alarma-x:hover{opacity:1;}
+@keyframes alarmaPulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.35);}50%{box-shadow:0 0 0 7px rgba(220,38,38,0);}}
 footer{text-align:center;color:var(--muted);font-size:12px;margin-top:26px;}
 @media(max-width:640px){.brief-stats{grid-template-columns:repeat(2,1fr);}}

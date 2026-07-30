@@ -5,6 +5,10 @@
   var items = []; var activeTab = 'todos';
   var PRIO_ORDER = {alta:0, media:1, baja:2};
   var sortMode = 'prioridad'; try{ var _sm=localStorage.getItem('mp_sort'); if(_sm) sortMode=_sm; }catch(e){}
+  var alarmaDismissed=false; var _alarmArmed=false;
+  function playBeep(){ try{ var AC=window.AudioContext||window.webkitAudioContext; if(!AC) return; var ctx=new AC(); var t=ctx.currentTime; for(var i=0;i<3;i++){ var o=ctx.createOscillator(); var g=ctx.createGain(); o.type='sine'; o.frequency.value=i%2?988:880; o.connect(g); g.connect(ctx.destination); var st=t+i*0.34; g.gain.setValueAtTime(0.0001,st); g.gain.exponentialRampToValueAtTime(0.3,st+0.02); g.gain.exponentialRampToValueAtTime(0.0001,st+0.28); o.start(st); o.stop(st+0.3); } }catch(e){} }
+  function armAlarmSound(){ if(_alarmArmed) return; _alarmArmed=true; var h=function(){ playBeep(); document.removeEventListener('pointerdown',h); document.removeEventListener('keydown',h); }; document.addEventListener('pointerdown',h); document.addEventListener('keydown',h); }
+  function isAlarma(it){ return isPending(it) && ((it.fecha&&dayDiff(it.fecha)<0) || (it.recordar_en && new Date(it.recordar_en)<=new Date())); }
   function typeOptions(sel){ var o=[['tarea','📋 Tarea'],['responder','📥 Correo por responder'],['enviar','📤 Correo por enviar'],['nota','🗒️ Nota']]; return o.map(function(x){return '<option value="'+x[0]+'"'+(x[0]===sel?' selected':'')+'>'+x[1]+'</option>';}).join(''); }
   function prioOptions(sel){ var o=[['alta','🔴 Prioridad alta'],['media','🟠 Prioridad media'],['baja','⚪ Prioridad baja']]; return o.map(function(x){return '<option value="'+x[0]+'"'+(x[0]===sel?' selected':'')+'>'+x[1]+'</option>';}).join(''); }
   var TYPE_LABEL = {tarea:'Tarea', responder:'Correo por responder', enviar:'Correo por enviar', nota:'Nota'};
@@ -54,6 +58,9 @@
       var d=dayDiff(it.fecha); if(d===null) return; if(d<0) over++; else if(d===0) tod++; else if(d<=7) soon++;
     });
     document.getElementById('s-over').textContent=over; document.getElementById('s-today').textContent=tod; document.getElementById('s-soon').textContent=soon; document.getElementById('s-done').textContent=doneToday;
+    var alarmItems=items.filter(isAlarma);
+    var alBanner=document.getElementById('alarma');
+    if(alBanner){ if(alarmItems.length>0 && !alarmaDismissed){ document.getElementById('alarmaTxt').textContent='¡Atención! Tienes '+alarmItems.length+' pendiente'+(alarmItems.length>1?'s':'')+' vencido'+(alarmItems.length>1?'s':'')+' o que ya lleg'+(alarmItems.length>1?'aron':'ó')+' a su hora.'; alBanner.classList.remove('hidden'); armAlarmSound(); } else { alBanner.classList.add('hidden'); } }
     var urgent=sortPending(items.filter(function(it){ return isPending(it) && ((it.fecha&&dayDiff(it.fecha)<=0) || it.seguir); })).slice(0,6);
     var bl=document.getElementById('briefList');
     if(urgent.length){ bl.innerHTML=urgent.map(function(it){ var d=it.fecha?dayDiff(it.fecha):null; var isOver=d!==null&&d<0; var isToday=d===0; var color=isOver?'var(--red)':(isToday?'var(--amber)':'var(--accent)'); var lbl=isOver?'vencido':(isToday?'hoy':'🔁 seguir'); return '<div class="brief-item"><span class="dot" style="background:'+color+'"></span><strong>'+TYPE_ICON[it.tipo]+'</strong> '+esc(it.titulo)+' <span style="color:var(--muted);margin-left:auto;font-size:12px">'+lbl+'</span></div>'; }).join(''); }
@@ -68,6 +75,7 @@
     trashBtn.classList.add('hidden');
     if(activeTab==='historial'){ info.textContent='Lo que ya completaste (más reciente primero)'; }
     else if(activeTab==='papelera'){ info.textContent='Elementos eliminados — puedes restaurarlos'; if(counts.papelera>0) trashBtn.classList.remove('hidden'); }
+    else if(activeTab==='alarma'){ info.textContent='Pendientes vencidos o que ya llegaron a su hora'; }
     else if(activeTab.indexOf('stat_')===0){ info.textContent='Mostrando: '+STAT_LABEL[activeTab]+' · toca una pestaña para volver'; }
     else { info.textContent=''; }
 
@@ -80,6 +88,7 @@
     else if(activeTab==='stat_proximos'){ filtered=sortPending(items.filter(function(it){ return isPending(it)&&it.fecha&&dayDiff(it.fecha)>=1&&dayDiff(it.fecha)<=7; })); }
     else if(activeTab==='stat_completados'){ filtered=byStamp(items.filter(function(it){ return isHistory(it)&&it.hecha_en===todayStr(); }),'hecha_en'); }
     else if(activeTab==='seguimiento'){ filtered=sortPending(items.filter(function(it){ return isPending(it)&&it.seguir; })); }
+    else if(activeTab==='alarma'){ filtered=sortPending(items.filter(isAlarma)); }
     else { filtered=sortPending(items.filter(function(it){ return isPending(it) && (activeTab==='todos'?true:it.tipo===activeTab); })); }
 
     if(!filtered.length){
@@ -87,6 +96,7 @@
       if(activeTab==='papelera') msg='La papelera está vacía. 🗑️';
       else if(activeTab==='historial') msg='Aquí aparecerá lo que vayas completando. ✅';
       else if(activeTab==='seguimiento') msg='Nada en seguimiento. Al agregar algo sin fecha que no quieras olvidar, marca la casilla 🔁.';
+      else if(activeTab==='alarma') msg='Nada vencido ni con la hora cumplida. 🎉';
       else if(activeTab==='stat_vencidos') msg='No tienes nada vencido. 🎉';
       else if(activeTab==='stat_hoy') msg='No tienes nada para hoy. 🎉';
       else if(activeTab==='stat_proximos') msg='Nada en los próximos 7 días.';
@@ -200,6 +210,8 @@
   });
   document.getElementById('tabs').addEventListener('click', function(e){ var t=e.target.closest('.tab'); if(!t) return; activeTab=t.dataset.tab; var all=document.querySelectorAll('.tab'); for(var i=0;i<all.length;i++) all[i].classList.remove('active'); t.classList.add('active'); render(); });
   var sortSel=document.getElementById('sortMode'); if(sortSel){ sortSel.value=sortMode; sortSel.addEventListener('change', function(){ sortMode=sortSel.value; try{ localStorage.setItem('mp_sort', sortMode); }catch(e){} render(); }); }
+  var _ax=document.getElementById('alarmaCerrar'); if(_ax) _ax.addEventListener('click', function(){ alarmaDismissed=true; var a=document.getElementById('alarma'); if(a) a.classList.add('hidden'); });
+  var _av=document.getElementById('alarmaVer'); if(_av) _av.addEventListener('click', function(){ activeTab='alarma'; var all=document.querySelectorAll('.tab'); for(var i=0;i<all.length;i++) all[i].classList.remove('active'); render(); var l=document.getElementById('list'); if(l&&l.scrollIntoView) l.scrollIntoView({behavior:'smooth', block:'start'}); });
   var briefStats=document.querySelector('.brief-stats');
   if(briefStats){ briefStats.addEventListener('click', function(e){ var s=e.target.closest('.stat'); if(!s||!s.dataset.filter) return; activeTab='stat_'+s.dataset.filter; var all=document.querySelectorAll('.tab'); for(var i=0;i<all.length;i++) all[i].classList.remove('active'); render(); }); }
 

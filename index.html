@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Pendientes">
 <link rel="manifest" href="manifest.json">
 <title>Mis Pendientes</title>
-<link rel="stylesheet" href="styles.css?v=15">
+<link rel="stylesheet" href="styles.css?v=18">
 </head>
 <body>
 <div class="wrap">
@@ -21,6 +21,12 @@
     </div>
     <div style="text-align:right"><div id="status">Conectando…</div><button class="btn ghost" id="notifBtn" style="margin-top:6px">🔔 Activar avisos</button></div>
   </header>
+  <div id="alarma" class="alarma hidden">
+    <span class="alarma-ico">⏰</span>
+    <span id="alarmaTxt" class="alarma-txt"></span>
+    <button class="btn mini" id="alarmaVer" type="button">Ver</button>
+    <button class="alarma-x" id="alarmaCerrar" type="button" title="Cerrar">✕</button>
+  </div>
   <section class="brief">
     <h2>Resumen de hoy</h2>
     <div class="brief-stats">
@@ -122,7 +128,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-<script src="config.js?v=17"></script>
-<script src="app.js?v=17"></script>
+<script src="config.js?v=18"></script>
+<script src="app.js?v=18"></script>
 </body>
 </html>
