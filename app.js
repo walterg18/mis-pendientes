@@ -239,12 +239,17 @@
     var r=await db.from(TABLE).insert(obj); if(r.error){ alert('Error al guardar: '+r.error.message); return; }
     closeFoto(); resetFoto(); await load(); alert('¡Correo agregado a tus pendientes! 📥');
   }
+  function setFotoImg(dataUrl){ fotoDataUrl=dataUrl; var img=document.getElementById('fotoPrev'); if(img){ img.src=dataUrl; img.classList.remove('hidden'); } var rd=document.getElementById('fotoRead'); if(rd) rd.disabled=false; var pr=document.getElementById('fotoProg'); if(pr) pr.textContent='Imagen lista. Toca "Leer correo".'; var res=document.getElementById('fotoResult'); if(res) res.classList.add('hidden'); }
+  function blobToImg(blob){ if(!blob) return; var rd=new FileReader(); rd.onload=function(){ setFotoImg(rd.result); }; rd.readAsDataURL(blob); }
+  async function pegarImagen(){ var pr=document.getElementById('fotoProg'); try{ if(!navigator.clipboard||!navigator.clipboard.read){ if(pr) pr.textContent='Usa Ctrl+V para pegar, o sube el archivo.'; return; } var items=await navigator.clipboard.read(); for(var i=0;i<items.length;i++){ for(var j=0;j<items[i].types.length;j++){ if(items[i].types[j].indexOf('image/')===0){ var blob=await items[i].getType(items[i].types[j]); blobToImg(blob); return; } } } if(pr) pr.textContent='No hay una imagen en el portapapeles. Copia una captura primero.'; }catch(e){ console.error(e); if(pr) pr.textContent='No se pudo pegar automáticamente. Prueba con Ctrl+V.'; } }
   var _fb=document.getElementById('fotoBtn'); if(_fb) _fb.addEventListener('click', openFoto);
   var _fc=document.getElementById('fotoClose'); if(_fc) _fc.addEventListener('click', function(){ closeFoto(); });
-  var _ff=document.getElementById('fotoFile'); if(_ff) _ff.addEventListener('change', function(e){ var f=e.target.files && e.target.files[0]; if(!f) return; var rd=new FileReader(); rd.onload=function(){ fotoDataUrl=rd.result; var img=document.getElementById('fotoPrev'); img.src=fotoDataUrl; img.classList.remove('hidden'); document.getElementById('fotoRead').disabled=false; document.getElementById('fotoProg').textContent='Imagen lista. Toca "Leer correo".'; }; rd.readAsDataURL(f); });
+  var _ff=document.getElementById('fotoFile'); if(_ff) _ff.addEventListener('change', function(e){ var f=e.target.files && e.target.files[0]; blobToImg(f); });
+  var _fp=document.getElementById('fotoPegar'); if(_fp) _fp.addEventListener('click', pegarImagen);
   var _fr=document.getElementById('fotoRead'); if(_fr) _fr.addEventListener('click', leerFoto);
   var _fa=document.getElementById('fotoAdd'); if(_fa) _fa.addEventListener('click', agregarDesdeFoto);
   var _fm=document.getElementById('fotoModal'); if(_fm) _fm.addEventListener('click', function(e){ if(e.target===_fm) closeFoto(); });
+  document.addEventListener('paste', function(e){ var modal=document.getElementById('fotoModal'); if(!modal||modal.classList.contains('hidden')) return; var items=(e.clipboardData||{}).items||[]; for(var i=0;i<items.length;i++){ if(items[i].type&&items[i].type.indexOf('image/')===0){ var blob=items[i].getAsFile(); if(blob){ blobToImg(blob); if(e.preventDefault) e.preventDefault(); return; } } } });
 
   var now=new Date(); var h=now.getHours();
   document.getElementById('greet').textContent = h<12?'Buenos días':h<19?'Buenas tardes':'Buenas noches';

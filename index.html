@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Pendientes">
 <link rel="manifest" href="manifest.json">
 <title>Mis Pendientes</title>
-<link rel="stylesheet" href="styles.css?v=14">
+<link rel="stylesheet" href="styles.css?v=15">
 </head>
 <body>
 <div class="wrap">
@@ -86,8 +86,11 @@
 <div id="fotoModal" class="modal hidden">
   <div class="modal-card">
     <div class="modal-head"><strong>📷 Capturar correo por foto</strong><button class="act" id="fotoClose" type="button">✕ Cerrar</button></div>
-    <p class="modal-hint">Toma o sube una foto (o captura de pantalla) del correo. Se lee <strong>dentro de tu navegador</strong>: la imagen no sale de tu dispositivo.</p>
-    <input type="file" id="fotoFile" accept="image/*" capture="environment">
+    <p class="modal-hint">Toma o sube una foto/captura del correo, o <strong>pega una captura copiada (Ctrl+V)</strong>. Se lee <strong>dentro de tu navegador</strong>: la imagen no sale de tu dispositivo.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0;">
+      <input type="file" id="fotoFile" accept="image/*" capture="environment">
+      <button class="btn ghost" id="fotoPegar" type="button">📋 Pegar captura copiada</button>
+    </div>
     <img id="fotoPrev" class="hidden" alt="vista previa">
     <button class="btn" id="fotoRead" type="button" disabled>Leer correo</button>
     <div id="fotoProg" class="modal-hint"></div>
@@ -117,7 +120,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-<script src="config.js?v=14"></script>
-<script src="app.js?v=14"></script>
+<script src="config.js?v=15"></script>
+<script src="app.js?v=15"></script>
 </body>
 </html>
