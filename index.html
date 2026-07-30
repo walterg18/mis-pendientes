@@ -58,6 +58,18 @@
     <div class="row" style="margin-top:8px;">
       <textarea id="newNote" placeholder="Detalle opcional (a quién, asunto, notas)…" rows="1" style="flex:1 1 100%;resize:vertical;"></textarea>
     </div>
+    <div class="row" style="margin-top:6px;align-items:center;gap:8px;">
+      <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:7px;">🔁 Repetir el aviso:
+        <select id="newRepetir">
+          <option value="">No repetir</option>
+          <option value="30">cada 30 min</option>
+          <option value="60">cada 1 hora</option>
+          <option value="120">cada 2 horas</option>
+          <option value="240">cada 4 horas</option>
+          <option value="custom">personalizado…</option>
+        </select>
+      </label>
+    </div>
     <div class="row" style="margin-top:6px;">
       <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:7px;cursor:pointer;"><input type="checkbox" id="newSeguir"> 🔁 Recordarme cada día hasta cerrarlo (seguimiento, sin fecha fija)</label>
     </div>
@@ -128,7 +140,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-<script src="config.js?v=19"></script>
-<script src="app.js?v=19"></script>
+<script src="config.js?v=20"></script>
+<script src="app.js?v=20"></script>
 </body>
 </html>

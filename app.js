@@ -11,6 +11,8 @@
   function isAlarma(it){ return isPending(it) && ((it.fecha&&dayDiff(it.fecha)<0) || (it.recordar_en && new Date(it.recordar_en)<=new Date())); }
   function typeOptions(sel){ var o=[['tarea','📋 Tarea'],['responder','📥 Correo por responder'],['enviar','📤 Correo por enviar'],['nota','🗒️ Nota']]; return o.map(function(x){return '<option value="'+x[0]+'"'+(x[0]===sel?' selected':'')+'>'+x[1]+'</option>';}).join(''); }
   function prioOptions(sel){ var o=[['alta','🔴 Prioridad alta'],['media','🟠 Prioridad media'],['baja','⚪ Prioridad baja']]; return o.map(function(x){return '<option value="'+x[0]+'"'+(x[0]===sel?' selected':'')+'>'+x[1]+'</option>';}).join(''); }
+  function fmtRepetir(min){ if(!min) return ''; min=parseInt(min,10); if(min%60===0) return 'cada '+(min/60)+'h'; return 'cada '+min+' min'; }
+  function repetirOptions(sel){ var s=sel?String(sel):''; var o=[['','No repetir'],['30','cada 30 min'],['60','cada 1 hora'],['120','cada 2 horas'],['240','cada 4 horas']]; var found=false; var html=o.map(function(x){ var c=(x[0]===s); if(c)found=true; return '<option value="'+x[0]+'"'+(c?' selected':'')+'>'+x[1]+'</option>'; }).join(''); if(!found && s){ html+='<option value="'+s+'" selected>cada '+s+' min</option>'; } return html; }
   var TYPE_LABEL = {tarea:'Tarea', responder:'Correo por responder', enviar:'Correo por enviar', nota:'Nota'};
   var TYPE_ICON  = {tarea:'📋', responder:'📥', enviar:'📤', nota:'🗒️'};
   var STAT_LABEL = {stat_vencidos:'Vencidos', stat_hoy:'Para hoy', stat_proximos:'Próximos 7 días', stat_completados:'Completados hoy'};
@@ -35,7 +37,7 @@
   function isTrash(it){ return it.eliminada; }
 
   async function load(){ setStatus('Cargando…'); var r=await db.from(TABLE).select('*'); if(r.error){ setStatus('Error de conexión'); console.error(r.error); return; } items=r.data||[]; setStatus('✔ Guardado en la nube'); render(); }
-  async function addItem(){ var t=document.getElementById('newTitle').value.trim(); if(!t){ document.getElementById('newTitle').focus(); return; } var segEl=document.getElementById('newSeguir'); var fechaV=document.getElementById('newDate').value||null; var horaV=(document.getElementById('newHora')||{}).value||''; var obj={titulo:t, tipo:document.getElementById('newType').value, fecha:fechaV, recordar_en:buildRecordar(fechaV,horaV), notificada:false, prioridad:document.getElementById('newPrio').value, nota:document.getElementById('newNote').value.trim()||null, hecha:false, eliminada:false, seguir: segEl?segEl.checked:false}; setStatus('Guardando…'); var r=await db.from(TABLE).insert(obj).select(); if(r.error){ setStatus('Error al guardar'); console.error(r.error); return; } document.getElementById('newTitle').value=''; document.getElementById('newDate').value=''; if(document.getElementById('newHora')) document.getElementById('newHora').value=''; document.getElementById('newNote').value=''; if(segEl) segEl.checked=false; await load(); }
+  async function addItem(){ var t=document.getElementById('newTitle').value.trim(); if(!t){ document.getElementById('newTitle').focus(); return; } var segEl=document.getElementById('newSeguir'); var fechaV=document.getElementById('newDate').value||null; var horaV=(document.getElementById('newHora')||{}).value||''; var repEl=document.getElementById('newRepetir'); var repVal=repEl?repEl.value:''; var repetir=null; if(repVal==='custom'){ var _m=prompt('¿Cada cuántos MINUTOS quieres que te lo recuerde?'); _m=parseInt(_m,10); if(_m&&_m>0) repetir=_m; else { setStatus('✔ Guardado en la nube'); return; } } else if(repVal){ repetir=parseInt(repVal,10)||null; } var recordarV=buildRecordar(fechaV,horaV); if(repetir && !recordarV){ recordarV=new Date(Date.now()+repetir*60000).toISOString(); } var obj={titulo:t, tipo:document.getElementById('newType').value, fecha:fechaV, recordar_en:recordarV, repetir_min:repetir, notificada:false, prioridad:document.getElementById('newPrio').value, nota:document.getElementById('newNote').value.trim()||null, hecha:false, eliminada:false, seguir: segEl?segEl.checked:false}; setStatus('Guardando…'); var r=await db.from(TABLE).insert(obj).select(); if(r.error){ setStatus('Error al guardar'); console.error(r.error); return; } document.getElementById('newTitle').value=''; document.getElementById('newDate').value=''; if(document.getElementById('newHora')) document.getElementById('newHora').value=''; document.getElementById('newNote').value=''; if(segEl) segEl.checked=false; if(repEl) repEl.value=''; await load(); }
   async function patch(id,fields){ setStatus('Guardando…'); var r=await db.from(TABLE).update(fields).eq('id',id); if(r.error){ setStatus('Error al guardar'); console.error(r.error); return; } await load(); }
   async function hardRemove(id){ setStatus('Eliminando…'); var r=await db.from(TABLE).delete().eq('id',id); if(r.error){ setStatus('Error'); console.error(r.error); return; } await load(); }
   function findById(id){ for(var i=0;i<items.length;i++){ if(String(items[i].id)===String(id)) return items[i]; } return null; }
@@ -143,6 +145,7 @@
     var cls='pr-'+prio; var badges='';
     if(it.fecha) badges+=dateBadge(it.fecha);
     if(it.recordar_en) badges+='<span class="badge hora">⏰ '+horaLegible(it.recordar_en)+'</span>';
+    if(it.repetir_min) badges+='<span class="badge seguir">🔁 '+fmtRepetir(it.repetir_min)+'</span>';
     if(it.seguir) badges+='<span class="badge seguir">🔁 En seguimiento</span>';
     badges+='<span class="badge prio-'+prio+'">'+(prio==='alta'?'🔴':prio==='media'?'🟠':'⚪')+' '+prio+'</span>';
     badges+='<span class="badge prio-baja">'+TYPE_ICON[it.tipo]+' '+TYPE_LABEL[it.tipo]+'</span>';
@@ -162,6 +165,7 @@
         '<div class="reschedule hidden" data-resched>'+
           '<input type="date" data-newdate value="'+(it.fecha||'')+'">'+
           '<input type="time" data-newtime value="'+horaLocal(it.recordar_en)+'" title="Hora de aviso">'+
+          '<select data-newrep title="Repetir el aviso">'+repetirOptions(it.repetir_min)+'</select>'+
           '<button class="btn mini" data-act="saveresched">Guardar</button>'+
           '<button class="act" data-act="cancelresched">Cancelar</button>'+
           '<button class="act" data-act="cleardate">Quitar fecha</button>'+
@@ -196,7 +200,7 @@
     else if(act==='editar'){ itemEl.querySelector('[data-editar]').classList.toggle('hidden'); }
     else if(act==='canceledit'){ itemEl.querySelector('[data-editar]').classList.add('hidden'); }
     else if(act==='saveedit'){ var nt=itemEl.querySelector('[data-etitulo]').value.trim(); if(!nt){ alert('El título no puede quedar vacío.'); return; } patch(it.id,{ titulo:nt, nota:itemEl.querySelector('[data-enota]').value.trim()||null, tipo:itemEl.querySelector('[data-etipo]').value, prioridad:itemEl.querySelector('[data-eprio]').value }); }
-    else if(act==='saveresched'){ var nd=itemEl.querySelector('[data-newdate]').value||null; var ntEl=itemEl.querySelector('[data-newtime]'); var nt=ntEl?ntEl.value:''; patch(it.id,{fecha:nd, recordar_en:buildRecordar(nd,nt), notificada:false}); }
+    else if(act==='saveresched'){ var nd=itemEl.querySelector('[data-newdate]').value||null; var ntEl=itemEl.querySelector('[data-newtime]'); var nt=ntEl?ntEl.value:''; var nrEl=itemEl.querySelector('[data-newrep]'); var nr=(nrEl&&nrEl.value)?parseInt(nrEl.value,10):null; var rec=buildRecordar(nd,nt); if(nr && !rec){ rec=new Date(Date.now()+nr*60000).toISOString(); } patch(it.id,{fecha:nd, recordar_en:rec, repetir_min:nr, notificada:false}); }
     else if(act==='cleardate'){ patch(it.id,{fecha:null, recordar_en:null, notificada:false}); }
   });
   document.getElementById('addBtn').addEventListener('click', addItem);
